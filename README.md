@@ -1,63 +1,68 @@
-🗓️ Planificación del TFG (Semana a Semana)
-Fase 1: Cimientos y Diseño
-  Semana 1: Diseño de Datos y Prototipado (UI/UX)
+🗓️ Roadmap TFG: Sistema de Asistencia QR (4 Semanas)
+Semana 1: Cimientos y Conectividad (El "Esqueleto")
+El objetivo es que el móvil y el servidor se saluden.
 
-  Repo Back: Definir el schema.sql final. Configurar el proyecto Spring Boot básico.
-  
-  Repo Front: Diseñar en papel o Figma las 3 pantallas clave: Login, Escáner QR y Confirmación.
-  
-  Meta: Tener los dos repositorios conectados y el entorno de desarrollo listo.
-  
-Semana 2: El Corazón del Backend (API)
-  
-  Repo Back: Crear las Entidades (Java) y Repositorios (JPA). Configurar la conexión a la base de datos (MySQL/PostgreSQL).
-  
-  Repo Front: Crear la navegación básica en Flutter (cambiar de pantalla).
-  
-  Meta: Que el Backend pueda guardar un alumno manualmente en la DB.
+Backend (Java/Spring Boot):
 
-Fase 2: Desarrollo del Flujo Principal
-Semana 3: Autenticación (Login)
+Configurar el proyecto en Spring Initializr.
 
-  Repo Back: Crear el endpoint de Login.
-  
-  Repo Front: Formulario de login en Flutter y conexión con la API para recibir el token o ID del alumno.
-  
-  Meta: Un alumno puede loguearse desde el móvil.
-  
-Semana 4: Implementación del QR (Front)
+Crear la base de datos SQL con las 3 tablas (Alumnos, Clases, Asistencias).
 
-  Repo Front: Instalar librerías de cámara y escaneo de QR. Lógica para extraer el id_clase del código QR.
-  
-  Repo Back: Crear el endpoint POST /asistencias/registrar.
-  
-  Meta: Que la cámara del móvil lea un código y "entienda" qué clase es.
+Crear la entidad Alumno y un endpoint GET /test para verificar que el servidor responde.
 
-Semana 5: Registro de Asistencia (La "Magia")
+Frontend (Flutter):
 
-  Repo Back: Lógica para guardar la asistencia con la fecha/hora del servidor.
-  
-  Repo Front: Enviar el ID del alumno + ID de la clase al Back al escanear.
-  
-  Meta: Flujo completo: Escaneo -> Base de Datos -> Confirmación en pantalla.
+Crear la estructura del proyecto y la pantalla de Login (solo diseño).
 
-Fase 3: Pulido y Extras
-Semana 6: Panel del Profesor y Seguridad
+Configurar la librería http para conectar con el Back.
 
-  Repo Back: Crear un endpoint para que el profesor vea la lista de alumnos que han entrado.
-  
-  Repo Front (Opcional): Una pequeña vista web o en la misma app para el profesor.
-  
-  Meta: Validar que un alumno no pueda firmar dos veces la misma clase el mismo día.
+Meta: Hacer una petición desde el móvil y recibir un "Hola Mundo" desde Java.
 
-Semana 7: Testing y Errores
+Semana 2: Autenticación y Generación de QR
+Backend:
 
-  Ambos: Probar qué pasa si no hay internet, si el QR es falso o si el alumno no existe.
-  
-  Repo Back: Limpieza de código y comentarios.
+Endpoint de Login: Recibe correo/pass y devuelve el id_alumno.
 
-Semana 8: Documentación Final
+Crear un pequeño script o vista que genere un QR con un id_clase (puedes usar una web externa para generar el QR manualmente por ahora).
 
-  Repo Back/Front: Completar los README.md con instrucciones de instalación.
+Frontend:
 
-Memoria: Terminar de escribir la memoria del TFG basándose en lo que has subido a GitHub.
+Lógica de Login: Guardar el id_alumno localmente (SharedPreferences).
+
+Implementar la cámara con mobile_scanner.
+
+Meta: Loguearse en la app y que la cámara reconozca un código QR.
+
+Semana 3: El Flujo Maestro (Registro de Asistencia)
+Esta es la semana clave donde todo se une.
+
+Backend:
+
+Crear endpoint POST /asistencias/registrar.
+
+Lógica: Recibir id_alumno e id_clase, validar que existen y guardar en la tabla asistencias con el TIMESTAMP actual.
+
+Frontend:
+
+Al escanear el QR, enviar automáticamente la petición al Back.
+
+Mostrar pantalla de "¡Asistencia registrada con éxito!" o "Error".
+
+Meta: Escanear un QR y ver una nueva fila aparecer en tu base de datos SQL automáticamente.
+
+Semana 4: Pulido, Seguridad y Memoria
+Backend:
+
+Añadir una validación simple: "Si el alumno ya firmó en esta clase hoy, no dejarle firmar otra vez".
+
+Frontend:
+
+Validar campos vacíos en el login y mejorar un poco el diseño (colores, logo).
+
+Documentación (TFG):
+
+Exportar el diagrama de la base de datos.
+
+Documentar los Endpoints (puedes usar Swagger o simplemente una lista en Markdown).
+
+Grabar el video de demostración (¡muy importante para la nota!).
