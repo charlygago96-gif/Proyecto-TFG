@@ -1,0 +1,35 @@
+name: front_tfg
+description: "Aplicación de asistencia por QR para alumnos y profesores."
+# El siguiente define la versión de tu aplicación.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Librería para peticiones HTTP a Spring Boot
+  http: ^1.1.0
+
+  # Librería para generar códigos QR (Vista Profesor)
+  qr_flutter: ^4.1.0
+
+  # Librería para escanear códigos QR (Vista Alumno)
+  mobile_scanner: ^3.5.0
+
+  # Iconos de iOS
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Si en el futuro decides usar imágenes locales, se declararían aquí.
+  # assets:
+  #   - assets/logo.png
