@@ -5,7 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 // --- CONFIGURACIÓN GLOBAL ---
-const String apiBaseUrl = "http://localhost:9000/api/tfg";
+const String apiBaseUrl = "http://10.0.2.2:9000/api/tfg";
 
 void main() {
   runApp(const MyApp());
@@ -93,7 +93,6 @@ class _LoginPageState extends State<LoginPage> {
 
         if (!mounted) return;
 
-        // Mostrar diálogo de bienvenida con el nombre
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
@@ -697,7 +696,6 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
                         ),
                       ),
             const SizedBox(height: 24),
-
             // Botón crear
             SizedBox(
               width: double.infinity,
@@ -734,6 +732,7 @@ class ProfesorPage extends StatefulWidget {
 class _ProfesorPageState extends State<ProfesorPage> {
   List examenes = [];
   bool cargando = true;
+  String? error;
 
   @override
   void initState() {
@@ -742,39 +741,202 @@ class _ProfesorPageState extends State<ProfesorPage> {
   }
 
   Future<void> cargarExamenes() async {
+    setState(() {
+      cargando = true;
+      error = null;
+    });
+
     try {
-      // Cargamos solo los exámenes del profesor autenticado
-      final response = await http.get(
-          Uri.parse("$apiBaseUrl/examenes-profesor/${UsuarioSesion.correo}"));
+      final response = await http
+          .get(Uri.parse(
+              "$apiBaseUrl/examenes-profesor/${UsuarioSesion.correo}"))
+          .timeout(const Duration(seconds: 10)); // Timeout para no quedarse colgado
+
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
         setState(() {
-          examenes = json.decode(response.body);
+          examenes = decoded is List ? decoded : [];
           cargando = false;
         });
       } else {
-        setState(() => cargando = false);
+        setState(() {
+          error = "Error del servidor: ${response.statusCode}";
+          cargando = false;
+        });
       }
     } catch (e) {
-      if (mounted) setState(() => cargando = false);
+      if (!mounted) return;
+      setState(() {
+        error = "No se pudo conectar con el servidor.\nUsa http://10.0.2.2:9000 en el emulador.";
+        cargando = false;
+      });
     }
   }
 
-  // Elimina el examen y también lo elimina de los alumnos asignados
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Mis Exámenes"),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: cargarExamenes)
+        ],
+      ),
+      body: cargando
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.wifi_off, size: 70, color: Colors.red),
+                        const SizedBox(height: 12),
+                        Text(
+                          error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.refresh),
+                          label: const Text("Reintentar"),
+                          onPressed: cargarExamenes,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : examenes.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox, size: 70, color: Colors.grey),
+                          SizedBox(height: 12),
+                          Text("No tienes exámenes creados",
+                              style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: examenes.length,
+                      itemBuilder: (context, i) {
+                        final item = examenes[i];
+                        final fechaStr = item['fecha'] != null
+                            ? _formatDate(DateTime.parse(item['fecha']))
+                            : "Sin fecha";
+                        final alumnos =
+                            (item['alumnosAsignados'] as List<dynamic>? ?? []);
+                        return Card(
+                          elevation: 2,
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.indigo,
+                              child:
+                                  Icon(Icons.assignment, color: Colors.white),
+                            ),
+                            title: Text(
+                                item['nombre'] ?? item['codigoExamen'] ?? '',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("📅 $fechaStr"),
+                                Text(
+                                    "👥 ${alumnos.length} alumno(s) asignado(s)"),
+                                Text("🔑 ${item['codigoExamen'] ?? ''}",
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.grey)),
+                              ],
+                            ),
+                            isThreeLine: true,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.qr_code,
+                                      color: Colors.indigo),
+                                  tooltip: "Ver QR",
+                                  onPressed: () => _verQR(
+                                      context,
+                                      item['codigoExamen'] ?? '',
+                                      item['nombre'] ?? ''),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  tooltip: "Eliminar",
+                                  onPressed: () => _confirmarEliminar(
+                                      item['codigoExamen'] ?? '',
+                                      item['nombre'] ?? ''),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+    );
+  }
+
+  void _verQR(BuildContext context, String data, String nombre) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(nombre.isNotEmpty ? nombre : "QR del Examen"),
+        content: SizedBox(
+          width: 260,
+          height: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 220,
+                height: 220,
+                child: QrImageView(
+                  data: data.isNotEmpty ? data : "sin-datos",
+                  size: 220,
+                  version: QrVersions.auto,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                data,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cerrar"))
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmarEliminar(String codigo, String nombre) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("¿Eliminar examen?"),
-        content: Text(
-            "Vas a eliminar el examen \"$nombre\".\n\n"
-            "⚠️ Este examen también desaparecerá del listado de todos los alumnos asignados."),
+        content: Text("Vas a eliminar el examen \"$nombre\"."),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text("Cancelar")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red,
-                foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Eliminar"),
           ),
@@ -786,123 +948,20 @@ class _ProfesorPageState extends State<ProfesorPage> {
 
   Future<void> _eliminar(String codigo) async {
     try {
-      // El backend debe encargarse de quitarlo a los alumnos también
       final response =
-          await http.delete(Uri.parse("$apiBaseUrl/eliminar/$codigo"));
+          await http.delete(Uri.parse("$apiBaseUrl/eliminar/$codigo"))
+          .timeout(const Duration(seconds: 10));
+      if (!mounted) return;
       if (response.statusCode == 200) {
         cargarExamenes();
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Examen eliminado correctamente")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Error al eliminar")));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al eliminar")));
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Mis Exámenes"),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh), onPressed: cargarExamenes)
-        ],
-      ),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : examenes.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inbox, size: 70, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text("No tienes exámenes creados",
-                          style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: examenes.length,
-                  itemBuilder: (context, i) {
-                    final item = examenes[i];
-                    final fechaStr = item['fecha'] != null
-                        ? _formatDate(DateTime.parse(item['fecha']))
-                        : "Sin fecha";
-                    final alumnos =
-                        (item['alumnosAsignados'] as List<dynamic>? ?? []);
-                    return Card(
-                      elevation: 2,
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.indigo,
-                          child: Icon(Icons.assignment, color: Colors.white),
-                        ),
-                        title: Text(
-                            item['nombre'] ?? item['codigoExamen'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("📅 $fechaStr"),
-                            Text("👥 ${alumnos.length} alumno(s) asignado(s)"),
-                            Text("🔑 ${item['codigoExamen'] ?? ''}",
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey)),
-                          ],
-                        ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.qr_code,
-                                  color: Colors.indigo),
-                              tooltip: "Ver QR",
-                              onPressed: () => _verQR(
-                                  context,
-                                  item['codigoExamen'] ?? '',
-                                  item['nombre'] ?? ''),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: "Eliminar",
-                              onPressed: () => _confirmarEliminar(
-                                  item['codigoExamen'] ?? '',
-                                  item['nombre'] ?? ''),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-    );
-  }
-
-  void _verQR(BuildContext context, String data, String nombre) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(nombre.isNotEmpty ? nombre : "QR del Examen"),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          QrImageView(data: data, size: 220),
-          const SizedBox(height: 10),
-          Text(data,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13),
-              textAlign: TextAlign.center),
-        ]),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cerrar"))
-        ],
-      ),
-    );
   }
 }
 
@@ -1134,11 +1193,6 @@ class _AlumnoPageState extends State<AlumnoPage> {
   }
 }
 
-// ============================================================
-// UTILIDADES GLOBALES
-// ============================================================
-
-/// Formatea DateTime a "dd/MM/yyyy"
 String _formatDate(DateTime date) {
   return "${date.day.toString().padLeft(2, '0')}/"
       "${date.month.toString().padLeft(2, '0')}/"
