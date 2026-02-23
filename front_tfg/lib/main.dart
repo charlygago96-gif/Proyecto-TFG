@@ -5,8 +5,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 // --- CONFIGURACIÓN GLOBAL ---
-const String apiBaseUrl = "http://10.0.2.2:9000/api/tfg";
-
+const String apiBaseUrl =
+    "https://proyecto-tfg-backend-production.up.railway.app/api/tfg";
 void main() {
   runApp(const MyApp());
 }
@@ -35,7 +35,7 @@ class UsuarioSesion {
   static String correo = '';
   static String nombre = '';
   static String apellido = '';
-  static String rol = '';    // 'ALUMNO' o 'PROFESOR'
+  static String rol = ''; // 'ALUMNO' o 'PROFESOR'
 
   static String get nombreCompleto => '$nombre $apellido'.trim();
 
@@ -86,10 +86,10 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         // El backend devuelve el usuario completo con nombre, apellido y rol
         final data = json.decode(response.body);
-        UsuarioSesion.correo   = data['correo']   ?? _emailController.text.trim();
-        UsuarioSesion.nombre   = data['nombre']   ?? '';
+        UsuarioSesion.correo = data['correo'] ?? _emailController.text.trim();
+        UsuarioSesion.nombre = data['nombre'] ?? '';
         UsuarioSesion.apellido = data['apellido'] ?? '';
-        UsuarioSesion.rol      = data['rol']      ?? 'ALUMNO';
+        UsuarioSesion.rol = data['rol'] ?? 'ALUMNO';
 
         if (!mounted) return;
 
@@ -142,8 +142,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -208,10 +207,10 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nombreController     = TextEditingController();
-  final _apellidoController   = TextEditingController();
-  final _emailController      = TextEditingController();
-  final _passController       = TextEditingController();
+  final _nombreController = TextEditingController();
+  final _apellidoController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passController = TextEditingController();
   final _confirmPassController = TextEditingController();
 
   String _rolSeleccionado = 'ALUMNO';
@@ -227,12 +226,12 @@ class _RegisterPageState extends State<RegisterPage> {
             Uri.parse("$apiBaseUrl/crear"),
             headers: {"Content-Type": "application/json"},
             body: jsonEncode({
-              "nombre"  : _nombreController.text.trim(),
+              "nombre": _nombreController.text.trim(),
               "apellido": _apellidoController.text.trim(),
-              "correo"  : _emailController.text.trim(),
+              "correo": _emailController.text.trim(),
               "password": _passController.text,
-              "rol"     : _rolSeleccionado,
-              "activo"  : true,
+              "rol": _rolSeleccionado,
+              "activo": true,
             }),
           )
           .timeout(const Duration(seconds: 5));
@@ -246,11 +245,13 @@ class _RegisterPageState extends State<RegisterPage> {
           if (mounted) Navigator.pop(context);
         });
       } else {
-        _mostrarAlerta(context, "Error", "Error al registrar: ${response.body}");
+        _mostrarAlerta(
+            context, "Error", "Error al registrar: ${response.body}");
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _mostrarAlerta(context, "Error de Conexión", "No se pudo alcanzar el backend.");
+      _mostrarAlerta(
+          context, "Error de Conexión", "No se pudo alcanzar el backend.");
     }
   }
 
@@ -271,7 +272,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: _nombreController,
                 decoration: const InputDecoration(
                     labelText: "Nombre", border: OutlineInputBorder()),
-                validator: (v) => v!.isEmpty ? "El nombre es obligatorio" : null,
+                validator: (v) =>
+                    v!.isEmpty ? "El nombre es obligatorio" : null,
               ),
               const SizedBox(height: 15),
               // Apellido
@@ -279,7 +281,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: _apellidoController,
                 decoration: const InputDecoration(
                     labelText: "Apellido", border: OutlineInputBorder()),
-                validator: (v) => v!.isEmpty ? "El apellido es obligatorio" : null,
+                validator: (v) =>
+                    v!.isEmpty ? "El apellido es obligatorio" : null,
               ),
               const SizedBox(height: 15),
               // Email
@@ -288,8 +291,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 decoration: const InputDecoration(
                     labelText: "Correo Electrónico",
                     border: OutlineInputBorder()),
-                validator: (v) =>
-                    v!.contains('@') ? null : "Email no válido",
+                validator: (v) => v!.contains('@') ? null : "Email no válido",
               ),
               const SizedBox(height: 15),
               // Contraseña
@@ -298,8 +300,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 obscureText: true,
                 decoration: const InputDecoration(
                     labelText: "Contraseña", border: OutlineInputBorder()),
-                validator: (v) =>
-                    v!.length < 4 ? "Mínimo 4 caracteres" : null,
+                validator: (v) => v!.length < 4 ? "Mínimo 4 caracteres" : null,
               ),
               const SizedBox(height: 15),
               // Confirmar contraseña
@@ -317,10 +318,9 @@ class _RegisterPageState extends State<RegisterPage> {
               DropdownButtonFormField<String>(
                 value: _rolSeleccionado,
                 decoration: const InputDecoration(
-                    labelText: "Tipo de Usuario",
-                    border: OutlineInputBorder()),
+                    labelText: "Tipo de Usuario", border: OutlineInputBorder()),
                 items: const [
-                  DropdownMenuItem(value: "ALUMNO",   child: Text("Alumno")),
+                  DropdownMenuItem(value: "ALUMNO", child: Text("Alumno")),
                   DropdownMenuItem(value: "PROFESOR", child: Text("Profesor")),
                 ],
                 onChanged: (val) => setState(() => _rolSeleccionado = val!),
@@ -413,8 +413,8 @@ class HomeProfesor extends StatelessWidget {
       width: 280,
       height: 60,
       child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(backgroundColor: color,
-            foregroundColor: Colors.white),
+        style: ElevatedButton.styleFrom(
+            backgroundColor: color, foregroundColor: Colors.white),
         icon: Icon(icon),
         label: Text(text, style: const TextStyle(fontSize: 16)),
         onPressed: () =>
@@ -595,13 +595,13 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
       }
     } catch (e) {
       setState(() => _guardando = false);
-      _mostrarAlerta(context, "Error de Conexión", "Fallo al contactar con el backend.");
+      _mostrarAlerta(
+          context, "Error de Conexión", "Fallo al contactar con el backend.");
     }
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -628,7 +628,8 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
             GestureDetector(
               onTap: _seleccionarFecha,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(4),
@@ -678,7 +679,9 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
                               secondary: CircleAvatar(
                                 backgroundColor: Colors.indigo.shade100,
                                 child: Text(
-                                  nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
+                                  nombre.isNotEmpty
+                                      ? nombre[0].toUpperCase()
+                                      : '?',
                                   style: const TextStyle(color: Colors.indigo),
                                 ),
                               ),
@@ -750,7 +753,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
       final response = await http
           .get(Uri.parse(
               "$apiBaseUrl/examenes-profesor/${UsuarioSesion.correo}"))
-          .timeout(const Duration(seconds: 10)); // Timeout para no quedarse colgado
+          .timeout(
+              const Duration(seconds: 10)); // Timeout para no quedarse colgado
 
       if (!mounted) return;
 
@@ -769,7 +773,7 @@ class _ProfesorPageState extends State<ProfesorPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        error = "No se pudo conectar con el servidor.\nUsa http://10.0.2.2:9000 en el emulador.";
+        error = "No se pudo conectar con el servidor.";
         cargando = false;
       });
     }
@@ -908,8 +912,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
               const SizedBox(height: 10),
               Text(
                 data,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -948,8 +952,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
 
   Future<void> _eliminar(String codigo) async {
     try {
-      final response =
-          await http.delete(Uri.parse("$apiBaseUrl/eliminar/$codigo"))
+      final response = await http
+          .delete(Uri.parse("$apiBaseUrl/eliminar/$codigo"))
           .timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (response.statusCode == 200) {
@@ -959,8 +963,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al eliminar")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Error al eliminar")));
     }
   }
 }
@@ -1052,7 +1056,8 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                         ),
                         title: Text(
                             item['nombre'] ?? item['codigoExamen'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1060,9 +1065,8 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                             Text(
                               esFuturo ? "⏳ Próximo" : "✅ Pasado",
                               style: TextStyle(
-                                  color: esFuturo
-                                      ? Colors.orange
-                                      : Colors.grey),
+                                  color:
+                                      esFuturo ? Colors.orange : Colors.grey),
                             ),
                           ],
                         ),
@@ -1098,8 +1102,7 @@ class _AlumnoPageState extends State<AlumnoPage> {
             onDetect: (capture) {
               if (!scaneado && capture.barcodes.isNotEmpty) {
                 scaneado = true;
-                final String code =
-                    capture.barcodes.first.rawValue ?? "---";
+                final String code = capture.barcodes.first.rawValue ?? "---";
                 _registrarAsistencia(code);
               }
             },
@@ -1121,7 +1124,8 @@ class _AlumnoPageState extends State<AlumnoPage> {
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(20),
