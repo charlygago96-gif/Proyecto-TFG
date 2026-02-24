@@ -3,12 +3,23 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // --- CONFIGURACIÓN GLOBAL ---
 const String apiBaseUrl =
     "https://proyecto-tfg-backend-production.up.railway.app/api/tfg";
 
-void main() {
+// Handler para notificaciones en segundo plano (debe ser top-level)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const MyApp());
 }
 
@@ -91,6 +102,9 @@ class _LoginPageState extends State<LoginPage> {
         UsuarioSesion.apellido = data['apellido'] ?? '';
         UsuarioSesion.rol = data['rol'] ?? 'ALUMNO';
 
+        // Obtener token FCM y enviarlo al backend
+        await _enviarTokenFCM();
+
         if (!mounted) return;
 
         await showDialog(
@@ -137,6 +151,31 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = false);
       _mostrarAlerta(context, "Error de Conexión",
           "No se pudo conectar con el servidor.");
+    }
+  }
+
+  Future<void> _enviarTokenFCM() async {
+    try {
+      // Pedir permiso de notificaciones
+      await FirebaseMessaging.instance.requestPermission();
+
+      // Obtener el token del dispositivo
+      final token = await FirebaseMessaging.instance.getToken();
+
+      if (token != null && token.isNotEmpty) {
+        await http.post(
+          Uri.parse("$apiBaseUrl/fcm-token"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "correo": UsuarioSesion.correo,
+            "fcmToken": token,
+          }),
+        );
+        debugPrint("Token FCM enviado: $token");
+      }
+    } catch (e) {
+      // Si falla no bloqueamos el login
+      debugPrint("Error enviando token FCM: $e");
     }
   }
 
@@ -450,8 +489,8 @@ class HomeAlumno extends StatelessWidget {
             _menuButton(context, "Escanear QR", Icons.qr_code_scanner,
                 Colors.green, const AlumnoPage()),
             const SizedBox(height: 16),
-            _menuButton(context, "Mis Exámenes", Icons.assignment, Colors.orange,
-                const ExamenesAlumnoPage()),
+            _menuButton(context, "Mis Exámenes", Icons.assignment,
+                Colors.orange, const ExamenesAlumnoPage()),
           ],
         ),
       ),
@@ -488,6 +527,7 @@ class CrearExamenPage extends StatefulWidget {
 class _CrearExamenPageState extends State<CrearExamenPage> {
   final _nombreExamenController = TextEditingController();
   DateTime? _fechaSeleccionada;
+  TimeOfDay? _horaSeleccionada;
   List<dynamic> _todosAlumnos = [];
   List<String> _alumnosSeleccionados = [];
   bool _cargandoAlumnos = true;
@@ -523,6 +563,14 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
     if (picked != null) setState(() => _fechaSeleccionada = picked);
   }
 
+  Future<void> _seleccionarHora() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked != null) setState(() => _horaSeleccionada = picked);
+  }
+
   Future<void> _crearExamen() async {
     if (_nombreExamenController.text.isEmpty) {
       _showSnack("El nombre del examen es obligatorio");
@@ -532,12 +580,24 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
       _showSnack("Selecciona la fecha del examen");
       return;
     }
+    if (_horaSeleccionada == null) {
+      _showSnack("Selecciona la hora del examen");
+      return;
+    }
     if (_alumnosSeleccionados.isEmpty) {
       _showSnack("Selecciona al menos un alumno");
       return;
     }
 
     setState(() => _guardando = true);
+
+    final fechaCompleta = DateTime(
+      _fechaSeleccionada!.year,
+      _fechaSeleccionada!.month,
+      _fechaSeleccionada!.day,
+      _horaSeleccionada!.hour,
+      _horaSeleccionada!.minute,
+    );
 
     try {
       final response = await http.post(
@@ -547,7 +607,7 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
           "nombre": _nombreExamenController.text.trim(),
           "codigoExamen": "EXAM-${DateTime.now().millisecondsSinceEpoch}",
           "profesor": UsuarioSesion.correo,
-          "fecha": _fechaSeleccionada!.toIso8601String(),
+          "fecha": fechaCompleta.toIso8601String(),
           "alumnosAsignados": _alumnosSeleccionados,
         }),
       );
@@ -557,7 +617,7 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
         _mostrarAlerta(context, "Examen creado",
-            "El examen '${_nombreExamenController.text}' ha sido creado y asignado a ${_alumnosSeleccionados.length} alumno(s).");
+            "El examen '${_nombreExamenController.text}' ha sido creado. Los alumnos recibirán una notificación 1 hora antes.");
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) Navigator.pop(context);
         });
@@ -621,6 +681,51 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _seleccionarHora,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.access_time, color: Colors.indigo),
+                    const SizedBox(width: 12),
+                    Text(
+                      _horaSeleccionada == null
+                          ? "Seleccionar hora del examen"
+                          : "Hora: ${_horaSeleccionada!.format(context)}",
+                      style: TextStyle(
+                        color: _horaSeleccionada == null
+                            ? Colors.grey
+                            : Colors.black,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_horaSeleccionada != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.notifications_active,
+                        color: Colors.orange, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      "Los alumnos serán notificados 1h antes",
+                      style: TextStyle(
+                          color: Colors.orange.shade700, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 24),
             const Text("Seleccionar Alumnos:",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -689,7 +794,6 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
 
 // ============================================================
 // 6. GESTIÓN DE EXÁMENES (PROFESOR)
-// FIX: trailing con botones separados del onTap del ListTile
 // ============================================================
 class ProfesorPage extends StatefulWidget {
   const ProfesorPage({super.key});
@@ -796,7 +900,6 @@ class _ProfesorPageState extends State<ProfesorPage> {
                           margin: const EdgeInsets.only(bottom: 10),
                           child: Column(
                             children: [
-                              // FIX: ListTile sin trailing para que onTap funcione bien
                               ListTile(
                                 onTap: () {
                                   Navigator.push(
@@ -832,9 +935,9 @@ class _ProfesorPageState extends State<ProfesorPage> {
                                 trailing: const Icon(Icons.chevron_right,
                                     color: Colors.grey),
                               ),
-                              // Botones QR y Eliminar separados abajo
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                padding:
+                                    const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
@@ -842,8 +945,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
                                       icon: const Icon(Icons.qr_code,
                                           color: Colors.indigo),
                                       label: const Text("Ver QR",
-                                          style:
-                                              TextStyle(color: Colors.indigo)),
+                                          style: TextStyle(
+                                              color: Colors.indigo)),
                                       onPressed: () => _verQR(
                                           context,
                                           item['codigoExamen'] ?? '',
@@ -854,7 +957,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
                                       icon: const Icon(Icons.delete,
                                           color: Colors.red),
                                       label: const Text("Eliminar",
-                                          style: TextStyle(color: Colors.red)),
+                                          style:
+                                              TextStyle(color: Colors.red)),
                                       onPressed: () => _confirmarEliminar(
                                           item['codigoExamen'] ?? '',
                                           item['nombre'] ?? ''),
@@ -1048,6 +1152,20 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                                       ? Colors.orange
                                       : Colors.grey),
                             ),
+                            if (esFuturo)
+                              Row(
+                                children: [
+                                  const Icon(Icons.notifications_active,
+                                      size: 13, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "Recibirás aviso 1h antes",
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.orange.shade700),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                         isThreeLine: true,
@@ -1268,15 +1386,14 @@ class _DetalleExamenPageState extends State<DetalleExamenPage> {
                   length: 2,
                   child: Column(
                     children: [
-                      // Resumen rápido
                       Container(
                         padding: const EdgeInsets.all(16),
                         color: Colors.indigo.shade50,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _resumenChip(
-                                "${presentes.length}", "Presentes", Colors.green),
+                            _resumenChip("${presentes.length}", "Presentes",
+                                Colors.green),
                             _resumenChip(
                                 "${ausentes.length}", "Ausentes", Colors.red),
                             _resumenChip("${asistencias.length}", "Total",
@@ -1373,8 +1490,7 @@ class _DetalleExamenPageState extends State<DetalleExamenPage> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       const Text("Escaneado:",
-                          style:
-                              TextStyle(fontSize: 10, color: Colors.grey)),
+                          style: TextStyle(fontSize: 10, color: Colors.grey)),
                       Text(
                         alumno['horaEscaneo'] ?? '',
                         style: const TextStyle(
@@ -1386,8 +1502,8 @@ class _DetalleExamenPageState extends State<DetalleExamenPage> {
                   )
                 : const Chip(
                     label: Text("Pendiente",
-                        style: TextStyle(
-                            color: Colors.orange, fontSize: 11)),
+                        style:
+                            TextStyle(color: Colors.orange, fontSize: 11)),
                     backgroundColor: Colors.transparent,
                     side: BorderSide(color: Colors.orange),
                   ),
