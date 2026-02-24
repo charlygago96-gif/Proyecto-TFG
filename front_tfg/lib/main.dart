@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 // --- CONFIGURACIÓN GLOBAL ---
 const String apiBaseUrl =
     "https://proyecto-tfg-backend-production.up.railway.app/api/tfg";
+
 void main() {
   runApp(const MyApp());
 }
@@ -29,13 +30,13 @@ class MyApp extends StatelessWidget {
 }
 
 // ============================================================
-// MODELO DE USUARIO (con nombre y apellido)
+// MODELO DE USUARIO
 // ============================================================
 class UsuarioSesion {
   static String correo = '';
   static String nombre = '';
   static String apellido = '';
-  static String rol = ''; // 'ALUMNO' o 'PROFESOR'
+  static String rol = '';
 
   static String get nombreCompleto => '$nombre $apellido'.trim();
 
@@ -79,12 +80,11 @@ class _LoginPageState extends State<LoginPage> {
               "password": _passController.text,
             }),
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 10));
 
       setState(() => _isLoading = false);
 
       if (response.statusCode == 200) {
-        // El backend devuelve el usuario completo con nombre, apellido y rol
         final data = json.decode(response.body);
         UsuarioSesion.correo = data['correo'] ?? _emailController.text.trim();
         UsuarioSesion.nombre = data['nombre'] ?? '';
@@ -118,7 +118,6 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (!mounted) return;
-        // Redirigir según rol
         if (UsuarioSesion.rol == 'PROFESOR') {
           Navigator.pushReplacement(
             context,
@@ -137,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       setState(() => _isLoading = false);
       _mostrarAlerta(context, "Error de Conexión",
-          "No se pudo conectar con el servidor en $apiBaseUrl.\n¿Está Spring Boot encendido?");
+          "No se pudo conectar con el servidor.");
     }
   }
 
@@ -196,7 +195,7 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 // ============================================================
-// 2. PANTALLA DE REGISTRO (con nombre y apellido)
+// 2. PANTALLA DE REGISTRO
 // ============================================================
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -234,7 +233,7 @@ class _RegisterPageState extends State<RegisterPage> {
               "activo": true,
             }),
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 10));
 
       setState(() => _isLoading = false);
 
@@ -267,7 +266,6 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               const Icon(Icons.person_add, size: 70, color: Colors.indigo),
               const SizedBox(height: 20),
-              // Nombre
               TextFormField(
                 controller: _nombreController,
                 decoration: const InputDecoration(
@@ -276,7 +274,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     v!.isEmpty ? "El nombre es obligatorio" : null,
               ),
               const SizedBox(height: 15),
-              // Apellido
               TextFormField(
                 controller: _apellidoController,
                 decoration: const InputDecoration(
@@ -285,7 +282,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     v!.isEmpty ? "El apellido es obligatorio" : null,
               ),
               const SizedBox(height: 15),
-              // Email
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -294,7 +290,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: (v) => v!.contains('@') ? null : "Email no válido",
               ),
               const SizedBox(height: 15),
-              // Contraseña
               TextFormField(
                 controller: _passController,
                 obscureText: true,
@@ -303,7 +298,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: (v) => v!.length < 4 ? "Mínimo 4 caracteres" : null,
               ),
               const SizedBox(height: 15),
-              // Confirmar contraseña
               TextFormField(
                 controller: _confirmPassController,
                 obscureText: true,
@@ -314,7 +308,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     v != _passController.text ? "No coinciden" : null,
               ),
               const SizedBox(height: 15),
-              // Rol
               DropdownButtonFormField<String>(
                 value: _rolSeleccionado,
                 decoration: const InputDecoration(
@@ -379,28 +372,17 @@ class HomeProfesor extends StatelessWidget {
               child: Icon(Icons.school, size: 40, color: Colors.white),
             ),
             const SizedBox(height: 16),
-            Text(
-              UsuarioSesion.nombreCompleto,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            Text(UsuarioSesion.nombreCompleto,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Text(UsuarioSesion.correo,
                 style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 40),
-            _menuButton(
-              context,
-              "Crear Examen",
-              Icons.add_box,
-              Colors.indigo,
-              const CrearExamenPage(),
-            ),
+            _menuButton(context, "Crear Examen", Icons.add_box, Colors.indigo,
+                const CrearExamenPage()),
             const SizedBox(height: 16),
-            _menuButton(
-              context,
-              "Gestionar Exámenes",
-              Icons.list_alt,
-              Colors.teal,
-              const ProfesorPage(),
-            ),
+            _menuButton(context, "Gestionar Exámenes", Icons.list_alt,
+                Colors.teal, const ProfesorPage()),
           ],
         ),
       ),
@@ -425,7 +407,7 @@ class HomeProfesor extends StatelessWidget {
 }
 
 // ============================================================
-// 4. HOME ALUMNO (solo escanear y examenes asignados)
+// 4. HOME ALUMNO
 // ============================================================
 class HomeAlumno extends StatelessWidget {
   const HomeAlumno({super.key});
@@ -459,28 +441,17 @@ class HomeAlumno extends StatelessWidget {
               child: Icon(Icons.person, size: 40, color: Colors.white),
             ),
             const SizedBox(height: 16),
-            Text(
-              UsuarioSesion.nombreCompleto,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            Text(UsuarioSesion.nombreCompleto,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Text(UsuarioSesion.correo,
                 style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 40),
-            _menuButton(
-              context,
-              "Escanear QR",
-              Icons.qr_code_scanner,
-              Colors.green,
-              const AlumnoPage(),
-            ),
+            _menuButton(context, "Escanear QR", Icons.qr_code_scanner,
+                Colors.green, const AlumnoPage()),
             const SizedBox(height: 16),
-            _menuButton(
-              context,
-              "Mis Exámenes",
-              Icons.assignment,
-              Colors.orange,
-              const ExamenesAlumnoPage(),
-            ),
+            _menuButton(context, "Mis Exámenes", Icons.assignment, Colors.orange,
+                const ExamenesAlumnoPage()),
           ],
         ),
       ),
@@ -505,7 +476,7 @@ class HomeAlumno extends StatelessWidget {
 }
 
 // ============================================================
-// 5. CREAR EXAMEN (con selector de alumnos por nombre/apellido)
+// 5. CREAR EXAMEN
 // ============================================================
 class CrearExamenPage extends StatefulWidget {
   const CrearExamenPage({super.key});
@@ -518,7 +489,7 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
   final _nombreExamenController = TextEditingController();
   DateTime? _fechaSeleccionada;
   List<dynamic> _todosAlumnos = [];
-  List<String> _alumnosSeleccionados = []; // correos seleccionados
+  List<String> _alumnosSeleccionados = [];
   bool _cargandoAlumnos = true;
   bool _guardando = false;
 
@@ -613,7 +584,6 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Nombre del examen
             TextField(
               controller: _nombreExamenController,
               decoration: const InputDecoration(
@@ -623,8 +593,6 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Fecha
             GestureDetector(
               onTap: _seleccionarFecha,
               child: Container(
@@ -654,8 +622,6 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Lista de alumnos
             const Text("Seleccionar Alumnos:",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -699,7 +665,6 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
                         ),
                       ),
             const SizedBox(height: 24),
-            // Botón crear
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -723,7 +688,8 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
 }
 
 // ============================================================
-// 6. GESTIÓN DE EXÁMENES (PROFESOR - CRUD)
+// 6. GESTIÓN DE EXÁMENES (PROFESOR)
+// FIX: trailing con botones separados del onTap del ListTile
 // ============================================================
 class ProfesorPage extends StatefulWidget {
   const ProfesorPage({super.key});
@@ -744,9 +710,14 @@ class _ProfesorPageState extends State<ProfesorPage> {
   }
 
   Future<void> cargarExamenes() async {
-    setState(() { cargando = true; error = null; });
+    setState(() {
+      cargando = true;
+      error = null;
+    });
     try {
-      final response = await http.get(Uri.parse("$apiBaseUrl/examenes-profesor/${UsuarioSesion.correo}"))
+      final response = await http
+          .get(Uri.parse(
+              "$apiBaseUrl/examenes-profesor/${UsuarioSesion.correo}"))
           .timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (response.statusCode == 200) {
@@ -755,46 +726,147 @@ class _ProfesorPageState extends State<ProfesorPage> {
           cargando = false;
         });
       } else {
-        setState(() { error = "Error: ${response.statusCode}"; cargando = false; });
+        setState(() {
+          error = "Error: ${response.statusCode}";
+          cargando = false;
+        });
       }
     } catch (e) {
-      setState(() { error = "Error de conexión"; cargando = false; });
+      if (!mounted) return;
+      setState(() {
+        error = "Error de conexión";
+        cargando = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Mis Exámenes"), actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: cargarExamenes)]),
-      body: cargando 
-        ? const Center(child: CircularProgressIndicator()) 
-        : examenes.isEmpty 
-          ? const Center(child: Text("No hay exámenes")) 
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: examenes.length,
-              itemBuilder: (context, i) {
-                final item = examenes[i];
-                return Card(
-                  clipBehavior: Clip.hardEdge, // Importante para que el splash del clic se vea bien
-                  child: ListTile(
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => DetalleExamenPage(examen: item)));
-                    },
-                    leading: const CircleAvatar(backgroundColor: Colors.indigo, child: Icon(Icons.assignment, color: Colors.white)),
-                    title: Text(item['nombre'] ?? 'Sin nombre', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text("Código: ${item['codigoExamen']}"),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(icon: const Icon(Icons.qr_code), onPressed: () => _verQR(context, item['codigoExamen'], item['nombre'])),
-                        IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _confirmarEliminar(item['codigoExamen'], item['nombre'])),
-                      ],
-                    ),
+      appBar: AppBar(
+        title: const Text("Mis Exámenes"),
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.refresh), onPressed: cargarExamenes)
+        ],
+      ),
+      body: cargando
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.wifi_off, size: 70, color: Colors.red),
+                      const SizedBox(height: 12),
+                      Text(error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.refresh),
+                        label: const Text("Reintentar"),
+                        onPressed: cargarExamenes,
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                )
+              : examenes.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox, size: 70, color: Colors.grey),
+                          SizedBox(height: 12),
+                          Text("No tienes exámenes creados",
+                              style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: examenes.length,
+                      itemBuilder: (context, i) {
+                        final item = examenes[i];
+                        final fechaStr = item['fecha'] != null
+                            ? _formatDate(DateTime.parse(item['fecha']))
+                            : "Sin fecha";
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: Column(
+                            children: [
+                              // FIX: ListTile sin trailing para que onTap funcione bien
+                              ListTile(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          DetalleExamenPage(examen: item),
+                                    ),
+                                  );
+                                },
+                                leading: const CircleAvatar(
+                                  backgroundColor: Colors.indigo,
+                                  child: Icon(Icons.assignment,
+                                      color: Colors.white),
+                                ),
+                                title: Text(
+                                  item['nombre'] ?? 'Sin nombre',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("📅 $fechaStr"),
+                                    Text(
+                                      "🔑 ${item['codigoExamen'] ?? ''}",
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                                isThreeLine: true,
+                                trailing: const Icon(Icons.chevron_right,
+                                    color: Colors.grey),
+                              ),
+                              // Botones QR y Eliminar separados abajo
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.qr_code,
+                                          color: Colors.indigo),
+                                      label: const Text("Ver QR",
+                                          style:
+                                              TextStyle(color: Colors.indigo)),
+                                      onPressed: () => _verQR(
+                                          context,
+                                          item['codigoExamen'] ?? '',
+                                          item['nombre'] ?? ''),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      label: const Text("Eliminar",
+                                          style: TextStyle(color: Colors.red)),
+                                      onPressed: () => _confirmarEliminar(
+                                          item['codigoExamen'] ?? '',
+                                          item['nombre'] ?? ''),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
     );
   }
 
@@ -802,20 +874,82 @@ class _ProfesorPageState extends State<ProfesorPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(nombre),
-        content: SizedBox(height: 250, width: 250, child: QrImageView(data: data, version: QrVersions.auto, size: 200.0)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cerrar"))],
+        title: Text(nombre.isNotEmpty ? nombre : "QR del Examen"),
+        content: SizedBox(
+          width: 260,
+          height: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 220,
+                height: 220,
+                child: QrImageView(
+                  data: data.isNotEmpty ? data : "sin-datos",
+                  size: 220,
+                  version: QrVersions.auto,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(data,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13),
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cerrar"))
+        ],
       ),
     );
   }
 
-  void _confirmarEliminar(String codigo, String nombre) {
-    // Aquí iría tu lógica de eliminar que ya tenías
-    print("Eliminar examen: $codigo");
+  Future<void> _confirmarEliminar(String codigo, String nombre) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("¿Eliminar examen?"),
+        content: Text("Vas a eliminar el examen \"$nombre\"."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancelar")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Eliminar"),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true) _eliminar(codigo);
+  }
+
+  Future<void> _eliminar(String codigo) async {
+    try {
+      final response = await http
+          .delete(Uri.parse("$apiBaseUrl/eliminar/$codigo"))
+          .timeout(const Duration(seconds: 10));
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        cargarExamenes();
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Examen eliminado correctamente")));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al eliminar")));
+    }
   }
 }
+
 // ============================================================
-// 7. EXÁMENES DEL ALUMNO (con fechas)
+// 7. EXÁMENES DEL ALUMNO
 // ============================================================
 class ExamenesAlumnoPage extends StatefulWidget {
   const ExamenesAlumnoPage({super.key});
@@ -901,8 +1035,8 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                         ),
                         title: Text(
                             item['nombre'] ?? item['codigoExamen'] ?? '',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -910,8 +1044,9 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                             Text(
                               esFuturo ? "⏳ Próximo" : "✅ Pasado",
                               style: TextStyle(
-                                  color:
-                                      esFuturo ? Colors.orange : Colors.grey),
+                                  color: esFuturo
+                                      ? Colors.orange
+                                      : Colors.grey),
                             ),
                           ],
                         ),
@@ -947,12 +1082,12 @@ class _AlumnoPageState extends State<AlumnoPage> {
             onDetect: (capture) {
               if (!scaneado && capture.barcodes.isNotEmpty) {
                 scaneado = true;
-                final String code = capture.barcodes.first.rawValue ?? "---";
+                final String code =
+                    capture.barcodes.first.rawValue ?? "---";
                 _registrarAsistencia(code);
               }
             },
           ),
-          // Guía visual centrada
           Center(
             child: Container(
               width: 220,
@@ -1031,8 +1166,8 @@ class _AlumnoPageState extends State<AlumnoPage> {
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Cierra el diálogo
-              Navigator.pop(context); // Vuelve al Home
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text("Aceptar"),
           ),
@@ -1042,6 +1177,230 @@ class _AlumnoPageState extends State<AlumnoPage> {
   }
 }
 
+// ============================================================
+// 9. DETALLE EXAMEN - PRESENTES Y AUSENTES
+// ============================================================
+class DetalleExamenPage extends StatefulWidget {
+  final Map examen;
+
+  const DetalleExamenPage({super.key, required this.examen});
+
+  @override
+  State<DetalleExamenPage> createState() => _DetalleExamenPageState();
+}
+
+class _DetalleExamenPageState extends State<DetalleExamenPage> {
+  List asistencias = [];
+  bool cargando = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAsistencia();
+  }
+
+  Future<void> _cargarAsistencia() async {
+    setState(() {
+      cargando = true;
+      error = null;
+    });
+    try {
+      final response = await http
+          .get(Uri.parse(
+              "$apiBaseUrl/asistencia-examen/${widget.examen['codigoExamen']}"))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          asistencias = json.decode(response.body);
+          cargando = false;
+        });
+      } else {
+        setState(() {
+          error = "Error al cargar asistencia";
+          cargando = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = "Error de conexión";
+        cargando = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final presentes =
+        asistencias.where((a) => a['haEscaneado'] == true).toList();
+    final ausentes =
+        asistencias.where((a) => a['haEscaneado'] == false).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.examen['nombre'] ?? "Detalle"),
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.refresh), onPressed: _cargarAsistencia)
+        ],
+      ),
+      body: cargando
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          size: 60, color: Colors.red),
+                      const SizedBox(height: 12),
+                      Text(error!,
+                          style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                          onPressed: _cargarAsistencia,
+                          child: const Text("Reintentar")),
+                    ],
+                  ),
+                )
+              : DefaultTabController(
+                  length: 2,
+                  child: Column(
+                    children: [
+                      // Resumen rápido
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        color: Colors.indigo.shade50,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _resumenChip(
+                                "${presentes.length}", "Presentes", Colors.green),
+                            _resumenChip(
+                                "${ausentes.length}", "Ausentes", Colors.red),
+                            _resumenChip("${asistencias.length}", "Total",
+                                Colors.indigo),
+                          ],
+                        ),
+                      ),
+                      TabBar(
+                        labelColor: Colors.indigo,
+                        indicatorColor: Colors.indigo,
+                        tabs: [
+                          Tab(
+                              icon: const Icon(Icons.check_circle,
+                                  color: Colors.green),
+                              text: "Presentes (${presentes.length})"),
+                          Tab(
+                              icon: const Icon(Icons.cancel,
+                                  color: Colors.red),
+                              text: "Ausentes (${ausentes.length})"),
+                        ],
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _buildListaAlumnos(presentes, true),
+                            _buildListaAlumnos(ausentes, false),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _resumenChip(String numero, String label, Color color) {
+    return Column(
+      children: [
+        Text(numero,
+            style: TextStyle(
+                fontSize: 28, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: TextStyle(color: color, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildListaAlumnos(List lista, bool esPresente) {
+    if (lista.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              esPresente ? Icons.hourglass_empty : Icons.celebration,
+              size: 60,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              esPresente
+                  ? "Ningún alumno ha escaneado aún"
+                  : "¡Todos los alumnos han asistido!",
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: lista.length,
+      itemBuilder: (context, i) {
+        final alumno = lista[i];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 6),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor:
+                  esPresente ? Colors.green.shade100 : Colors.red.shade100,
+              child: Icon(
+                esPresente ? Icons.check : Icons.close,
+                color: esPresente ? Colors.green : Colors.red,
+              ),
+            ),
+            title: Text(
+              "${alumno['nombre'] ?? ''} ${alumno['apellido'] ?? ''}",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(alumno['correo'] ?? ''),
+            trailing: esPresente
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text("Escaneado:",
+                          style:
+                              TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text(
+                        alumno['horaEscaneo'] ?? '',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueGrey,
+                            fontSize: 12),
+                      ),
+                    ],
+                  )
+                : const Chip(
+                    label: Text("Pendiente",
+                        style: TextStyle(
+                            color: Colors.orange, fontSize: 11)),
+                    backgroundColor: Colors.transparent,
+                    side: BorderSide(color: Colors.orange),
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// HELPERS GLOBALES
+// ============================================================
 String _formatDate(DateTime date) {
   return "${date.day.toString().padLeft(2, '0')}/"
       "${date.month.toString().padLeft(2, '0')}/"
@@ -1061,120 +1420,4 @@ void _mostrarAlerta(BuildContext context, String titulo, String msg) {
       ],
     ),
   );
-}
-
-class DetalleExamenPage extends StatefulWidget {
-  final Map examen;
-
-  const DetalleExamenPage({super.key, required this.examen});
-
-  @override
-  State<DetalleExamenPage> createState() => _DetalleExamenPageState();
-}
-
-class _DetalleExamenPageState extends State<DetalleExamenPage> {
-  List asistencias = [];
-  bool cargando = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _cargarAsistencia();
-  }
-
-  Future<void> _cargarAsistencia() async {
-    try {
-      // Este endpoint debería devolver los alumnos asignados y su hora de escaneo si existe
-      final response = await http.get(
-        Uri.parse(
-            "$apiBaseUrl/asistencia-examen/${widget.examen['codigoExamen']}"),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          asistencias = json.decode(response.body);
-          cargando = false;
-        });
-      }
-    } catch (e) {
-      setState(() => cargando = false);
-      _mostrarAlerta(
-          context, "Error", "No se pudo obtener la lista de asistencia");
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Separamos los alumnos en dos listas locales para la UI
-    final presentes =
-        asistencias.where((a) => a['haEscaneado'] == true).toList();
-    final ausentes =
-        asistencias.where((a) => a['haEscaneado'] == false).toList();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.examen['nombre'] ?? "Detalle"),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh), onPressed: _cargarAsistencia)
-        ],
-      ),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  TabBar(
-                    labelColor: Colors.indigo,
-                    indicatorColor: Colors.indigo,
-                    tabs: [
-                      Tab(text: "Presentes (${presentes.length})"),
-                      Tab(text: "Ausentes (${ausentes.length})"),
-                    ],
-                  ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _buildListaAlumnos(presentes, true),
-                        _buildListaAlumnos(ausentes, false),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildListaAlumnos(List lista, bool esPresente) {
-    if (lista.isEmpty)
-      return const Center(child: Text("No hay alumnos en esta categoría"));
-
-    return ListView.builder(
-      itemCount: lista.length,
-      itemBuilder: (context, i) {
-        final alumno = lista[i];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor:
-                esPresente ? Colors.green.shade100 : Colors.red.shade100,
-            child: Icon(
-              esPresente ? Icons.check : Icons.close,
-              color: esPresente ? Colors.green : Colors.red,
-            ),
-          ),
-          title: Text("${alumno['nombre']} ${alumno['apellido']}"),
-          subtitle: Text(alumno['correo']),
-          trailing: esPresente
-              ? Text(
-                  "Escaneado: ${alumno['horaEscaneo']}",
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                )
-              : const Text("Pendiente", style: TextStyle(color: Colors.orange)),
-        );
-      },
-    );
-  }
 }
