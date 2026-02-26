@@ -163,7 +163,10 @@ class _LoginPageState extends State<LoginPage> {
       await FirebaseMessaging.instance.requestPermission();
 
       // Obtener el token del dispositivo
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await FirebaseMessaging.instance.getToken(
+        vapidKey:
+            "BJ4gpS1VdD_mZXouOxzYYLyxgWoMc690cAF5qob2gMx_HVbcIdlJb3UXIwvxhng_y5NsUjRNIDs3wKYxAsSO0nE",
+      );
 
       if (token != null && token.isNotEmpty) {
         await http.post(
@@ -611,10 +614,7 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
           "nombre": _nombreExamenController.text.trim(),
           "codigoExamen": "EXAM-${DateTime.now().millisecondsSinceEpoch}",
           "profesor": UsuarioSesion.correo,
-          "fecha": fechaCompleta
-              .toUtc()
-              .add(const Duration(hours: 1))
-              .toIso8601String(),
+          "fecha": fechaCompleta.toIso8601String(),
           "alumnosAsignados": _alumnosSeleccionados,
         }),
       );

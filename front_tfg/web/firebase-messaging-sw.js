@@ -8,6 +8,6 @@ firebase.initializeApp({
   storageBucket: "proyectotfg-185c4.firebasestorage.app",
   messagingSenderId: "1087451936722",
   appId: "1:1087451936722:web:8052655db3fcbcea0dba0b"
-});
+}); 
 
 const messaging = firebase.messaging();
