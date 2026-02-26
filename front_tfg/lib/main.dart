@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 
 // --- CONFIGURACIÓN GLOBAL ---
 const String apiBaseUrl =
@@ -18,7 +19,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const MyApp());
 }
@@ -149,8 +152,8 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _mostrarAlerta(context, "Error de Conexión",
-          "No se pudo conectar con el servidor.");
+      _mostrarAlerta(
+          context, "Error de Conexión", "No se pudo conectar con el servidor.");
     }
   }
 
@@ -191,11 +194,12 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lock_person, size: 80, color: Colors.indigo),
+            Image.asset(
+              'assets/icons/icon.png',
+              width: 120,
+              height: 120,
+            ),
             const SizedBox(height: 20),
-            const Text("Acceso TFG",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 30),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(
@@ -607,7 +611,10 @@ class _CrearExamenPageState extends State<CrearExamenPage> {
           "nombre": _nombreExamenController.text.trim(),
           "codigoExamen": "EXAM-${DateTime.now().millisecondsSinceEpoch}",
           "profesor": UsuarioSesion.correo,
-          "fecha": fechaCompleta.toIso8601String(),
+          "fecha": fechaCompleta
+              .toUtc()
+              .add(const Duration(hours: 1))
+              .toIso8601String(),
           "alumnosAsignados": _alumnosSeleccionados,
         }),
       );
@@ -850,8 +857,7 @@ class _ProfesorPageState extends State<ProfesorPage> {
       appBar: AppBar(
         title: const Text("Mis Exámenes"),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh), onPressed: cargarExamenes)
+          IconButton(icon: const Icon(Icons.refresh), onPressed: cargarExamenes)
         ],
       ),
       body: cargando
@@ -936,8 +942,7 @@ class _ProfesorPageState extends State<ProfesorPage> {
                                     color: Colors.grey),
                               ),
                               Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
@@ -945,8 +950,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
                                       icon: const Icon(Icons.qr_code,
                                           color: Colors.indigo),
                                       label: const Text("Ver QR",
-                                          style: TextStyle(
-                                              color: Colors.indigo)),
+                                          style:
+                                              TextStyle(color: Colors.indigo)),
                                       onPressed: () => _verQR(
                                           context,
                                           item['codigoExamen'] ?? '',
@@ -957,8 +962,7 @@ class _ProfesorPageState extends State<ProfesorPage> {
                                       icon: const Icon(Icons.delete,
                                           color: Colors.red),
                                       label: const Text("Eliminar",
-                                          style:
-                                              TextStyle(color: Colors.red)),
+                                          style: TextStyle(color: Colors.red)),
                                       onPressed: () => _confirmarEliminar(
                                           item['codigoExamen'] ?? '',
                                           item['nombre'] ?? ''),
@@ -1046,8 +1050,8 @@ class _ProfesorPageState extends State<ProfesorPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al eliminar")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Error al eliminar")));
     }
   }
 }
@@ -1139,8 +1143,8 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                         ),
                         title: Text(
                             item['nombre'] ?? item['codigoExamen'] ?? '',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1148,9 +1152,8 @@ class _ExamenesAlumnoPageState extends State<ExamenesAlumnoPage> {
                             Text(
                               esFuturo ? "⏳ Próximo" : "✅ Pasado",
                               style: TextStyle(
-                                  color: esFuturo
-                                      ? Colors.orange
-                                      : Colors.grey),
+                                  color:
+                                      esFuturo ? Colors.orange : Colors.grey),
                             ),
                             if (esFuturo)
                               Row(
@@ -1200,8 +1203,7 @@ class _AlumnoPageState extends State<AlumnoPage> {
             onDetect: (capture) {
               if (!scaneado && capture.barcodes.isNotEmpty) {
                 scaneado = true;
-                final String code =
-                    capture.barcodes.first.rawValue ?? "---";
+                final String code = capture.barcodes.first.rawValue ?? "---";
                 _registrarAsistencia(code);
               }
             },
@@ -1373,8 +1375,7 @@ class _DetalleExamenPageState extends State<DetalleExamenPage> {
                       const Icon(Icons.error_outline,
                           size: 60, color: Colors.red),
                       const SizedBox(height: 12),
-                      Text(error!,
-                          style: const TextStyle(color: Colors.red)),
+                      Text(error!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 20),
                       ElevatedButton(
                           onPressed: _cargarAsistencia,
@@ -1410,8 +1411,7 @@ class _DetalleExamenPageState extends State<DetalleExamenPage> {
                                   color: Colors.green),
                               text: "Presentes (${presentes.length})"),
                           Tab(
-                              icon: const Icon(Icons.cancel,
-                                  color: Colors.red),
+                              icon: const Icon(Icons.cancel, color: Colors.red),
                               text: "Ausentes (${ausentes.length})"),
                         ],
                       ),
@@ -1502,8 +1502,7 @@ class _DetalleExamenPageState extends State<DetalleExamenPage> {
                   )
                 : const Chip(
                     label: Text("Pendiente",
-                        style:
-                            TextStyle(color: Colors.orange, fontSize: 11)),
+                        style: TextStyle(color: Colors.orange, fontSize: 11)),
                     backgroundColor: Colors.transparent,
                     side: BorderSide(color: Colors.orange),
                   ),
